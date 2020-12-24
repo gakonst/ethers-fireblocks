@@ -1,3 +1,4 @@
+// TODO: This file can be extracted to a separate crate.
 use crate::{
     jwtclient::JwtSigner,
     types::{
@@ -22,8 +23,8 @@ pub struct FireblocksClient {
     version: String,
 }
 
+// This impl block contains the necessary API calls for interacting with Ethereum
 impl FireblocksClient {
-    // TODO: Make this work by just providing the PEM file path
     pub fn new(key: EncodingKey, api_key: &str) -> Self {
         Self::new_with_url(key, api_key, FIREBLOCKS_API)
     }
@@ -47,34 +48,32 @@ impl FireblocksClient {
     pub async fn transaction(&self, txid: &str) -> Result<TransactionDetails> {
         self.get(&format!("transactions/{}", txid)).await
     }
+}
 
+// This impl block contains the underlying GET/POST helpers for authing to fireblocks
+impl FireblocksClient {
     async fn get<R: DeserializeOwned>(&self, path: &str) -> Result<R> {
-        // craft the path (e.g. /v1/vault/accounts)
         let path = format!("/{}/{}", self.version, path);
-        // create the Get Request
         let req = self.client.get(&format!("{}{}", self.url, path));
-        // pass it the auth params
-        // TODO: Arbitrary data can be passed here. Is this an issue?
-        let req = self.authed(&path, req, ())?;
-        // send it
-        let res = req.send().await?;
-        let text = res.text().await?;
-        let res: R =
-            serde_json::from_str(&text).map_err(|err| FireblocksError::SerdeJson { err, text })?;
-        Ok(res)
+        self.send(&path, req, ()).await
     }
 
     async fn post<S: Serialize, R: DeserializeOwned>(&self, path: &str, body: S) -> Result<R> {
-        // craft the path (e.g. /v1/vault/accounts)
         let path = format!("/{}/{}", self.version, path);
-        // create the POST Request
         let req = self
             .client
             .post(&format!("{}{}", self.url, path))
             .json(&body);
-        // pass it the auth params
+        self.send(&path, req, body).await
+    }
+
+    async fn send<S: Serialize, R: DeserializeOwned>(
+        &self,
+        path: &str,
+        req: RequestBuilder,
+        body: S,
+    ) -> Result<R> {
         let req = self.authed(&path, req, body)?;
-        // send it
         let res = req.send().await?;
         let text = res.text().await?;
         let res: R =
@@ -95,10 +94,10 @@ impl FireblocksClient {
             .header("X-API-Key", &self.signer.api_key)
             .bearer_auth(jwt))
     }
+}
 
-    // The rest are "nice to have" API endpoints
-
-    // GET /v1/vault/accounts
+// This impl block contains the rest of "nice to have" endpoints
+impl FireblocksClient {
     pub async fn vaults(&self) -> Result<Vec<VaultAccountResponse>> {
         self.get("vault/accounts").await
     }
@@ -132,34 +131,22 @@ impl FireblocksClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use once_cell::sync::Lazy;
-
-    static CLIENT: Lazy<Fireblocks> = Lazy::new(|| {
-        let key = {
-            let fireblocks_key = std::env::var("FIREBLOCKS_API_SECRET_PATH")
-                .expect("fireblocks api secret key not set");
-            let rsa_pem = std::fs::read(fireblocks_key).unwrap();
-            let key2 = EncodingKey::from_rsa_pem(include_bytes!(
-                "/Users/Georgios/.fireblocks/fireblocks.key"
-            ))
-            .unwrap();
-            let key = EncodingKey::from_rsa_pem(&rsa_pem[..]).unwrap();
-            assert_eq!(key, key2);
-            key
-        };
-        let api_key = std::env::var("FIREBLOCKS_API_KEY").expect("fireblocks api key not set");
-        // Fireblocks::new_with_url(key, &api_key, "http://localhost:8080")
-        Fireblocks::new(key, &api_key)
-    });
 
     #[tokio::test]
-    // TODO: FIgure out why POST requests fail when GET requested do not
     async fn v1_api() {
-        // let _res = CLIENT.vaults().await.unwrap();
-        // let _res = CLIENT.vault("1").await.unwrap();
-        // let _res = CLIENT.vault_addresses("1", "ETH_TEST").await.unwrap();
-        // let _res = CLIENT.vault_wallet("1", "ETH_TEST").await.unwrap();
-        let res = CLIENT
+        let fireblocks_key = std::env::var("FIREBLOCKS_API_SECRET_PATH").unwrap();
+        let api_key = std::env::var("FIREBLOCKS_API_KEY").expect("fireblocks api key not set");
+
+        let rsa_pem = std::fs::read(fireblocks_key).unwrap();
+        let key = EncodingKey::from_rsa_pem(&rsa_pem[..]).unwrap();
+        let client = FireblocksClient::new(key, &api_key);
+
+        let _res = client.vaults().await.unwrap();
+        let _res = client.vault("1").await.unwrap();
+        let _res = client.vault_addresses("1", "ETH_TEST").await.unwrap();
+        let _res = client.vault_wallet("1", "ETH_TEST").await.unwrap();
+        let _res = client
+            // Creating a vault does not require approval?
             .new_vault(CreateVaultRequest {
                 name: "test-acc".to_owned(),
                 customer_ref_id: None,
@@ -168,6 +155,5 @@ mod tests {
             })
             .await
             .unwrap();
-        dbg!(res);
     }
 }
