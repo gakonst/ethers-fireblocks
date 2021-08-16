@@ -14,7 +14,7 @@
 //!     "~/.fireblocks/fireblocks.key",
 //!     &std::env::var("FIREBLOCKS_API_KEY").expect("fireblocks api key not set"),
 //!     "1",
-//!     Some(3),
+//!     3,
 //! )?;
 //! // The signer can be used with Ethers' Wallet.
 //! let mut signer = FireblocksSigner::new(cfg).await;
