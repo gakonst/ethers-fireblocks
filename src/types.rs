@@ -124,6 +124,7 @@ pub struct OneTimeAddress {
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum TransactionOperation {
     TRANSFER,
     RAW,
@@ -137,6 +138,7 @@ pub enum TransactionOperation {
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum PeerType {
     VAULT_ACCOUNT,
     EXCHANGE_ACCOUNT,
@@ -156,6 +158,7 @@ pub struct CreateTransactionResponse {
 }
 
 #[allow(non_camel_case_types)]
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum TransactionStatus {
     SUBMITTED,

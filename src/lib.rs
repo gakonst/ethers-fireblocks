@@ -102,7 +102,7 @@ pub enum FireblocksError {
 pub struct FireblocksSigner {
     fireblocks: FireblocksClient,
     account_ids: HashMap<Address, String>,
-    chain_id: Option<u64>,
+    chain_id: u64,
     asset_id: String,
     address: Address,
     account_id: String,
@@ -116,7 +116,7 @@ pub struct Config {
     /// The API key which was provided to you by fireblocks support
     pub api_key: String,
     /// The chain id of the network you are connecting to
-    pub chain_id: Option<u64>,
+    pub chain_id: u64,
     /// Your vault's account id.
     pub account_id: String,
 }
@@ -128,7 +128,7 @@ impl Config {
         key: T,
         api_key: &str,
         account_id: &str,
-        chain_id: Option<u64>,
+        chain_id: u64,
     ) -> Result<Self> {
         let rsa_pem = std::fs::read(key.as_ref())?;
         let key = EncodingKey::from_rsa_pem(&rsa_pem)?;
@@ -153,13 +153,10 @@ impl FireblocksSigner {
     pub async fn new(cfg: Config) -> Self {
         let fireblocks = FireblocksClient::new(cfg.key, &cfg.api_key);
         let asset_id = match cfg.chain_id {
-            Some(chain_id) => match chain_id {
-                1 => "ETH",
-                3 => "ETH_TEST",
-                42 => "ETH_TEST2",
-                _ => panic!("Unsupported chain_id"),
-            },
-            None => "ETH",
+            1 => "ETH",
+            3 => "ETH_TEST",
+            42 => "ETH_TEST2",
+            _ => panic!("Unsupported chain_id"),
         };
 
         let res = fireblocks
@@ -223,7 +220,7 @@ async fn test_signer() -> FireblocksSigner {
         std::env::var("FIREBLOCKS_API_SECRET_PATH").unwrap(),
         &std::env::var("FIREBLOCKS_API_KEY").unwrap(),
         &std::env::var("FIREBLOCKS_SOURCE_VAULT_ACCOUNT").unwrap(),
-        Some(3),
+        3,
     )
     .unwrap();
     let mut fireblocks = FireblocksSigner::new(config).await;

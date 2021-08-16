@@ -14,7 +14,7 @@ ethers-providers = { git = "https://github.com/gakonst/ethers-rs" }
 serde_json = "1.0.60"
 serde = "1.0.118"
 jsonwebtoken = "7.2.0"
-reqwest = "0.10.10"
+reqwest = { version = "0.10.10", features = ["json"] }
 thiserror = "1.0.22"
 rustc-hex = "2.1.0"
 digest = "0.9.0"

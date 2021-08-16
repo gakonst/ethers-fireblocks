@@ -52,11 +52,11 @@ struct Claims<'a> {
 #[derive(Debug, Error)]
 pub enum JwtError {
     #[error("Could not serialize JWT body: {0}")]
-    JsonError(#[from] serde_json::Error),
+    Json(#[from] serde_json::Error),
     #[error("Could not create JWT time: {0}")]
-    TimeError(#[from] std::time::SystemTimeError),
+    Time(#[from] std::time::SystemTimeError),
     #[error(transparent)]
-    JWTError(#[from] jwterrors::Error),
+    Jwt(#[from] jwterrors::Error),
 }
 
 impl<'a> Claims<'a> {

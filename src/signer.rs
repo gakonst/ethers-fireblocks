@@ -7,7 +7,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use ethers_core::{
-    types::{Address, Signature, TransactionRequest, H256},
+    types::{transaction::eip2718::TypedTransaction, Address, Signature, H256, U256},
     utils::hash_message,
 };
 use ethers_signers::{to_eip155_v, Signer};
@@ -17,12 +17,9 @@ use rustc_hex::ToHex;
 impl Signer for FireblocksSigner {
     type Error = FireblocksError;
 
-    async fn sign_transaction(
-        &self,
-        tx: &TransactionRequest,
-    ) -> Result<Signature, FireblocksError> {
+    async fn sign_transaction(&self, tx: &TypedTransaction) -> Result<Signature, FireblocksError> {
         let sighash = tx.sighash(self.chain_id);
-        self.sign_with_eip155(tx, sighash, self.chain_id).await
+        self.sign(tx, sighash, true).await
     }
 
     async fn sign_message<S: Send + Sync + AsRef<[u8]>>(
@@ -30,20 +27,29 @@ impl Signer for FireblocksSigner {
         message: S,
     ) -> Result<Signature, Self::Error> {
         let hash = hash_message(&message);
-        self.sign_with_eip155(message.as_ref(), hash, None).await
+        self.sign(message.as_ref(), hash, false).await
     }
 
     fn address(&self) -> Address {
         self.address
     }
+
+    fn with_chain_id<T: Into<u64>>(mut self, chain_id: T) -> Self {
+        self.chain_id = chain_id.into();
+        self
+    }
+
+    fn chain_id(&self) -> u64 {
+        self.chain_id
+    }
 }
 
 impl FireblocksSigner {
-    async fn sign_with_eip155<S: serde::Serialize>(
+    async fn sign<S: serde::Serialize>(
         &self,
         preimage: S,
         hash: H256,
-        _chain_id: Option<u64>,
+        is_eip155: bool,
     ) -> Result<Signature, FireblocksError> {
         // send the hash for signing - this will NOT take advantage
         // of the policy engine
@@ -76,13 +82,17 @@ impl FireblocksSigner {
             let sig = &details.signed_messages[0].signature;
             let r = sig
                 .r
-                .parse::<H256>()
+                .parse::<U256>()
                 .map_err(|err| FireblocksError::ParseError(err.to_string()))?;
             let s = sig
                 .s
-                .parse::<H256>()
+                .parse::<U256>()
                 .map_err(|err| FireblocksError::ParseError(err.to_string()))?;
-            let v = to_eip155_v(sig.v as u8, self.chain_id);
+            let v = if is_eip155 {
+                to_eip155_v(sig.v as u8, self.chain_id)
+            } else {
+                sig.v + 27
+            };
             Ok(Signature { r, s, v })
         })
         .await
@@ -93,6 +103,7 @@ impl FireblocksSigner {
 mod tests {
     use super::*;
     use crate::test_signer;
+    use ethers_core::types::TransactionRequest;
     use rustc_hex::FromHex;
 
     #[tokio::test]
@@ -102,10 +113,15 @@ mod tests {
         let tx = TransactionRequest::new()
             .to(address)
             .data("ead710c40000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000548656c6c6f000000000000000000000000000000000000000000000000000000".from_hex::<Vec<u8>>().unwrap());
-        let sig = signer.sign_transaction(&tx).await.unwrap();
-        sig.verify(tx.sighash(Some(3)), signer.address()).unwrap();
+        let sighash = tx.sighash(3);
+        let sig = signer.sign_transaction(&tx.into()).await.unwrap();
+        sig.verify(sighash, signer.address()).unwrap();
+    }
 
-        let msg = "Hello World";
+    #[tokio::test]
+    async fn can_sign_msg() {
+        let signer = test_signer().await;
+        let msg = "Hello World 2";
         let sig = signer.sign_message(msg).await.unwrap();
         sig.verify(msg, signer.address()).unwrap();
     }

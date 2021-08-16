@@ -73,7 +73,7 @@ impl FireblocksClient {
         req: RequestBuilder,
         body: S,
     ) -> Result<R> {
-        let req = self.authed(&path, req, body)?;
+        let req = self.authed(path, req, body)?;
         let res = req.send().await?;
         let text = res.text().await?;
         let res: R =

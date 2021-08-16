@@ -1,5 +1,6 @@
 use ethers_core::types::{
-    Address, BlockNumber, Bytes, NameOrAddress, Signature, TransactionRequest, TxHash,
+    transaction::eip2718::TypedTransaction, Address, BlockId, Bytes, NameOrAddress, Signature,
+    TxHash,
 };
 use ethers_providers::{FromErr, Middleware, PendingTransaction};
 use ethers_signers::Signer;
@@ -57,14 +58,14 @@ impl<M: Middleware> Middleware for FireblocksMiddleware<M> {
 
     /// Submits a transaction with the Fireblocks CONTRACT_CALL mode and returns
     /// a pending transaction object.
-    async fn send_transaction(
+    async fn send_transaction<T: Into<TypedTransaction> + Send + Sync>(
         &self,
-        tx: TransactionRequest,
-        _: Option<BlockNumber>,
+        tx: T,
+        _: Option<BlockId>,
     ) -> Result<PendingTransaction<'_, Self::Provider>, Self::Error> {
         let tx_hash = self
             .fireblocks
-            .submit_transaction(&tx, "".to_owned())
+            .submit_transaction(tx, "".to_owned())
             .await?;
         Ok(PendingTransaction::new(tx_hash, self.provider()))
     }
@@ -83,28 +84,33 @@ impl<M: Middleware> Middleware for FireblocksMiddleware<M> {
 impl FireblocksSigner {
     /// Submits a transaction with the Fireblocks `CONTRACT_CALL` mode, using the provided
     /// note.
-    pub async fn submit_transaction(
+    pub async fn submit_transaction<T: Into<TypedTransaction> + Send + Sync>(
         &self,
-        tx: &TransactionRequest,
+        tx: T,
         note: String,
     ) -> Result<TxHash, FireblocksError> {
+        let tx = tx.into();
+        let gas_price = match tx {
+            TypedTransaction::Eip2930(ref inner) => inner.tx.gas_price,
+            TypedTransaction::Legacy(ref tx) => tx.gas_price,
+            TypedTransaction::Eip1559(ref tx) => tx.max_fee_per_gas,
+        };
         let args = TransactionArguments {
             operation: TransactionOperation::CONTRACT_CALL,
             source: TransferPeerPath {
                 peer_type: Some(PeerType::VAULT_ACCOUNT),
                 id: Some(self.account_id.clone()),
             },
-            destination: self.to_destination(tx.to.as_ref()),
+            destination: self.to_destination(tx.to()),
             extra_parameters: tx
-                .data
-                .as_ref()
+                .data()
                 .map(|data| ExtraParameters::ContractCallData(data.0.to_hex::<String>())),
 
             // rest is unnecessary
             asset_id: self.asset_id.clone(),
-            amount: tx.value.unwrap_or_default().to_string(),
-            gas_price: tx.gas_price.map(|x| x.to_string()),
-            gas_limit: tx.gas.map(|x| x.to_string()),
+            amount: tx.value().cloned().unwrap_or_default().to_string(),
+            gas_price: gas_price.map(|x| x.to_string()),
+            gas_limit: tx.gas().map(|x| x.to_string()),
             note,
         };
 
@@ -118,23 +124,20 @@ impl FireblocksSigner {
 
     fn to_destination(&self, to: Option<&NameOrAddress>) -> Option<DestinationTransferPeerPath> {
         match to {
-            Some(ref to) => match to {
-                NameOrAddress::Address(addr) => {
-                    let id = self.account_ids.get(addr);
-                    id.map(|id| {
-                        let ota = OneTimeAddress {
-                            address: format!("{:?}", addr),
-                            tag: None,
-                        };
-                        DestinationTransferPeerPath {
-                            peer_type: PeerType::EXTERNAL_WALLET,
-                            id: id.clone(),
-                            one_time_address: Some(ota),
-                        }
-                    })
-                }
-                _ => None,
-            },
+            Some(NameOrAddress::Address(addr)) => {
+                let id = self.account_ids.get(addr);
+                id.map(|id| {
+                    let ota = OneTimeAddress {
+                        address: format!("{:?}", addr),
+                        tag: None,
+                    };
+                    DestinationTransferPeerPath {
+                        peer_type: PeerType::EXTERNAL_WALLET,
+                        id: id.clone(),
+                        one_time_address: Some(ota),
+                    }
+                })
+            }
             _ => None,
         }
     }
@@ -144,6 +147,7 @@ impl FireblocksSigner {
 mod tests {
     use super::*;
     use crate::test_signer;
+    use ethers_core::types::TransactionRequest;
     use ethers_providers::Provider;
     use rustc_hex::FromHex;
     use std::convert::TryFrom;
@@ -161,11 +165,11 @@ mod tests {
         // make a simple setGreeting transaction and illustrate that it works
         // with the ethers-middleware arch
         let tx = TransactionRequest::new()
-            .send_to_str("cbe74e21b070a979b9d6426b11e876d4cb618daf").unwrap()
+            .to("cbe74e21b070a979b9d6426b11e876d4cb618daf".parse::<Address>().unwrap())
             .data("ead710c40000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000548656c6c6f000000000000000000000000000000000000000000000000000000".from_hex::<Vec<u8>>().unwrap());
         let pending_tx = provider.send_transaction(tx, None).await.unwrap();
         let tx_hash = *pending_tx;
-        let receipt = pending_tx.await.unwrap();
+        let receipt = pending_tx.await.unwrap().unwrap();
         assert_eq!(receipt.transaction_hash, tx_hash);
     }
 }
