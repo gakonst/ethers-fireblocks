@@ -125,15 +125,21 @@ impl FireblocksSigner {
     fn to_destination(&self, to: Option<&NameOrAddress>) -> Option<DestinationTransferPeerPath> {
         match to {
             Some(NameOrAddress::Address(addr)) => {
-                let id = self.account_ids.get(addr);
-                id.map(|id| {
-                    let ota = OneTimeAddress {
-                        address: format!("{:?}", addr),
-                        tag: None,
-                    };
+                let ota = OneTimeAddress {
+                    address: format!("{:?}", addr),
+                    tag: None,
+                };
+
+                Some(if let Some(id) = self.account_ids.get(addr) {
                     DestinationTransferPeerPath {
                         peer_type: PeerType::EXTERNAL_WALLET,
-                        id: id.clone(),
+                        id: Some(id.clone()),
+                        one_time_address: Some(ota),
+                    }
+                } else {
+                    DestinationTransferPeerPath {
+                        peer_type: PeerType::ONE_TIME_ADDRESS,
+                        id: None,
                         one_time_address: Some(ota),
                     }
                 })

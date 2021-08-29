@@ -20,9 +20,7 @@ To use the example, you must have the following env vars set:
  ```
 export FIREBLOCKS_API_SECRET_PATH=<path to your fireblocks.key>
 export FIREBLOCKS_API_KEY=<your fireblocks api key>
-export FIREBLOCKS_API_BASE_URL=https://api.fireblocks.io
-export FIREBLOCKS_EXTERNAL_WALLET=<the whitelisted wallet id receiving the tx>
-export FIREBLOCKS_SOURCE_VAULT_ACCOUNT=<the vault being used for sending txs>
+export FIREBLOCKS_SOURCE_VAULT_ACCOUNT=<the vault id being used for sending txs>
 ```
 
 ## Example Usage
@@ -47,12 +45,6 @@ async fn main() -> anyhow::Result<()> {
     // Create the signer (it can also be used with ethers_signers::Wallet)
     let mut signer = FireblocksSigner::new(cfg).await;
 
-    // Associate the wallet id to the address you're calling
-    // (this will be no longer required in the future)
-    let address: Address = "cbe74e21b070a979b9d6426b11e876d4cb618daf".parse()?;
-    let address_id = std::env::var("EXTERNAL_WALLET_ID").expect("external wallet id not set");
-    signer.add_account(address_id, address);
-
     // Instantiate an Ethers provider
     let provider = Provider::try_from("http://localhost:8545")?;
     // Wrap the provider with the fireblocks middleware
@@ -60,6 +52,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Any state altering transactions issued will be signed using
     // Fireblocks. Wait for your push notification and approve on your phone...
+    let address: Address = "cbe74e21b070a979b9d6426b11e876d4cb618daf".parse()?;
     let tx = TransactionRequest::new().to(address);
     let pending_tx = provider.send_transaction(tx, None).await?;
     // Everything else follows the normal ethers-rs APIs

@@ -109,7 +109,8 @@ pub struct TransferPeerPath {
 pub struct DestinationTransferPeerPath {
     #[serde(rename = "type")]
     pub peer_type: PeerType,
-    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub one_time_address: Option<OneTimeAddress>,
 }
@@ -144,7 +145,7 @@ pub enum PeerType {
     EXCHANGE_ACCOUNT,
     INTERNAL_WALLET,
     EXTERNAL_WALLET,
-    UNKNOWN,
+    ONE_TIME_ADDRESS,
     NETWORK_CONNECTION,
     FIAT_ACCOUNT,
     COMPOUND,

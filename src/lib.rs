@@ -184,7 +184,6 @@ impl FireblocksSigner {
     }
 
     /// Registers an Account ID to Address mapping.
-    // TODO: Remove once API does not require this
     pub fn add_account(&mut self, account_id: String, address: Address) {
         self.account_ids.insert(address, account_id);
     }
@@ -223,12 +222,5 @@ async fn test_signer() -> FireblocksSigner {
         3,
     )
     .unwrap();
-    let mut fireblocks = FireblocksSigner::new(config).await;
-    // add the account mapping
-    // https://github.com/fireblocks/fireblocks-defi-sdk/tree/master/examples/basic-example
-    let address: Address = "cbe74e21b070a979b9d6426b11e876d4cb618daf".parse().unwrap();
-    let external_wallet = std::env::var("FIREBLOCKS_EXTERNAL_WALLET").unwrap();
-    fireblocks.add_account(external_wallet, address);
-
-    fireblocks
+    FireblocksSigner::new(config).await
 }
