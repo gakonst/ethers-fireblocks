@@ -3,13 +3,19 @@ name = "ethers-fireblocks"
 version = "0.1.0"
 authors = ["Georgios Konstantopoulos <me@gakonst.com>"]
 edition = "2018"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = """
+ethers-rs middleware and signer for Fireblocks' APIs
+"""
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ethers-core = { git = "https://github.com/gakonst/ethers-rs/" }
-ethers-signers = { git = "https://github.com/gakonst/ethers-rs" }
-ethers-providers = { git = "https://github.com/gakonst/ethers-rs" }
+ethers-core = { version = "0.5.1"}
+ethers-signers = { version = "0.5.1" }
+ethers-providers = { version = "0.5.1" }
 
 serde_json = "1.0.60"
 serde = "1.0.118"
