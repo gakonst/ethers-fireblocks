@@ -1,7 +1,7 @@
 # <h1 align="center"> ethers-fireblocks </h1>
 
  Provides [ethers](https://github.com/gakonst/ethers-rs)-compatible Signer and Middleware
- implementations for the [Fireblocks Vaults API](fireblocks.com).
+ implementations for the [Fireblocks Vaults API](https://fireblocks.com).
 
 ## Documentation
 
