@@ -1,5 +1,5 @@
 [package]
-name = "ethers-fireblocks"
+name = "ethers_fireblocks"
 version = "0.1.2-alpha.0"
 authors = ["Georgios Konstantopoulos <me@gakonst.com>"]
 edition = "2018"
