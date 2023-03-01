@@ -36,7 +36,7 @@ async fn main() -> anyhow::Result<()> {
     let wallet_id = "1"; // Our wallet id
     let chain_id = 3; // Ropsten
     let cfg = Config::new(
-        &std::env::var("FIREBLOCKS_SECRET_PATH").expect("fireblocks secret not set"),
+        &std::env::var("FIREBLOCKS_API_SECRET_PATH").expect("fireblocks secret not set"),
         &std::env::var("FIREBLOCKS_API_KEY").expect("fireblocks api key not set"),
         wallet_id,
         chain_id,
