@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use std::time::{SystemTime, UNIX_EPOCH};
 use thiserror::Error;
+use rand::Rng;
 
 const EXPIRY: u64 = 55;
 
@@ -63,7 +64,8 @@ impl<'a> Claims<'a> {
     fn new<S: Serialize>(uri: &'a str, sub: &'a str, body: S) -> Result<Self, JwtError> {
         // use millisecond precision to ensure that it's not reused
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as u64;
-        let nonce = now;
+        let mut rng = rand::thread_rng();
+        let nonce = rng.gen::<u64>();
         let now = now / 1000;
 
         let body_hash = {

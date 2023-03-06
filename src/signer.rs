@@ -127,8 +127,9 @@ mod tests {
         let address: Address = "cbe74e21b070a979b9d6426b11e876d4cb618daf".parse().unwrap();
         let tx = TransactionRequest::new()
             .to(address)
+            .chain_id(5)
             .data("ead710c40000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000548656c6c6f000000000000000000000000000000000000000000000000000000".from_hex::<Vec<u8>>().unwrap());
-        let sighash = tx.sighash(3);
+        let sighash = tx.sighash();
         let sig = signer.sign_transaction(&tx.into()).await.unwrap();
         sig.verify(sighash, signer.address()).unwrap();
     }

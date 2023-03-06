@@ -2,6 +2,15 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct VaultAccountPaginatedResponse {
+    accounts: Vec<VaultAccountResponse>,
+    paging: Paging,
+    previous_url: Option<String>,
+    next_url: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VaultAccountResponse {
     id: String,
     name: String,
@@ -10,6 +19,13 @@ pub struct VaultAccountResponse {
     assets: Vec<AssetResponse>,
     customer_ref_id: Option<String>,
     auto_fuel: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Paging {
+    before: Option<String>,
+    after: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
