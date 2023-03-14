@@ -155,6 +155,7 @@ impl FireblocksSigner {
         let asset_id = match cfg.chain_id {
             1 => "ETH",
             3 => "ETH_TEST",
+            5 => "ETH_TEST3",
             42 => "ETH_TEST2",
             _ => panic!("Unsupported chain_id"),
         };
@@ -219,7 +220,7 @@ async fn test_signer() -> FireblocksSigner {
         std::env::var("FIREBLOCKS_API_SECRET_PATH").unwrap(),
         &std::env::var("FIREBLOCKS_API_KEY").unwrap(),
         &std::env::var("FIREBLOCKS_SOURCE_VAULT_ACCOUNT").unwrap(),
-        3,
+        5,
     )
     .unwrap();
     FireblocksSigner::new(config).await

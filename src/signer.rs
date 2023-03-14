@@ -7,7 +7,8 @@ use crate::{
 };
 use async_trait::async_trait;
 use ethers_core::{
-    types::{transaction::eip2718::TypedTransaction, Address, Signature, H256, U256},
+    types::{transaction::{eip2718::TypedTransaction, eip712::Eip712}, 
+        Address, Signature, H256, U256, },
     utils::hash_message,
 };
 use ethers_signers::{to_eip155_v, Signer};
@@ -18,8 +19,13 @@ impl Signer for FireblocksSigner {
     type Error = FireblocksError;
 
     async fn sign_transaction(&self, tx: &TypedTransaction) -> Result<Signature, FireblocksError> {
-        let sighash = tx.sighash(self.chain_id);
-        self.sign(tx, sighash, true).await
+        let mut tx_with_chain = tx.clone();
+        if tx_with_chain.chain_id().is_none() {
+            // in the case we don't have a chain_id, let's use the signer chain id instead
+            tx_with_chain.set_chain_id(self.chain_id);
+        }
+        let sighash = tx_with_chain.sighash();
+        self.sign(tx_with_chain, sighash, true).await
     }
 
     async fn sign_message<S: Send + Sync + AsRef<[u8]>>(
@@ -28,6 +34,16 @@ impl Signer for FireblocksSigner {
     ) -> Result<Signature, Self::Error> {
         let hash = hash_message(&message);
         self.sign(message.as_ref(), hash, false).await
+    }
+
+    /// Signs an EIP712 encoded domain separator and message
+    /// TODO: Implement
+    #[allow(unused_variables)]
+    async fn sign_typed_data<T: Eip712 + Send + Sync>(
+        &self,
+        payload: &T,
+    ) -> Result<Signature, Self::Error> {
+        unimplemented!()
     }
 
     fn address(&self) -> Address {
@@ -112,8 +128,9 @@ mod tests {
         let address: Address = "cbe74e21b070a979b9d6426b11e876d4cb618daf".parse().unwrap();
         let tx = TransactionRequest::new()
             .to(address)
+            .chain_id(5)
             .data("ead710c40000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000548656c6c6f000000000000000000000000000000000000000000000000000000".from_hex::<Vec<u8>>().unwrap());
-        let sighash = tx.sighash(3);
+        let sighash = tx.sighash();
         let sig = signer.sign_transaction(&tx.into()).await.unwrap();
         sig.verify(sighash, signer.address()).unwrap();
     }

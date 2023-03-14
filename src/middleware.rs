@@ -2,7 +2,7 @@ use ethers_core::types::{
     transaction::eip2718::TypedTransaction, Address, BlockId, Bytes, NameOrAddress, Signature,
     TxHash,
 };
-use ethers_providers::{FromErr, Middleware, PendingTransaction};
+use ethers_providers::{MiddlewareError, Middleware, PendingTransaction};
 use ethers_signers::Signer;
 
 use crate::{
@@ -32,6 +32,22 @@ impl<M: Middleware> FireblocksMiddleware<M> {
     }
 }
 
+// Boilerplate
+impl<M: Middleware> MiddlewareError for FireblocksMiddlewareError<M> {
+    type Inner = M::Error;
+
+    fn from_err(src: M::Error) -> FireblocksMiddlewareError<M> {
+        FireblocksMiddlewareError::MiddlewareError(src)
+    }
+
+    fn as_inner(&self) -> Option<&Self::Inner> {
+        match self {
+            FireblocksMiddlewareError::MiddlewareError(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum FireblocksMiddlewareError<M: Middleware> {
     #[error(transparent)]
@@ -40,11 +56,6 @@ pub enum FireblocksMiddlewareError<M: Middleware> {
     MiddlewareError(M::Error),
 }
 
-impl<M: Middleware> FromErr<M::Error> for FireblocksMiddlewareError<M> {
-    fn from(err: M::Error) -> FireblocksMiddlewareError<M> {
-        FireblocksMiddlewareError::MiddlewareError(err)
-    }
-}
 
 #[async_trait]
 impl<M: Middleware> Middleware for FireblocksMiddleware<M> {

@@ -3,7 +3,7 @@ use crate::{
     jwtclient::JwtSigner,
     types::{
         AssetResponse, CreateTransactionResponse, CreateVaultRequest, CreateVaultResponse,
-        DepositAddressResponse, TransactionArguments, TransactionDetails, VaultAccountResponse,
+        DepositAddressResponse, TransactionArguments, TransactionDetails, VaultAccountResponse, VaultAccountPaginatedResponse,
     },
     FireblocksError, Result,
 };
@@ -98,8 +98,8 @@ impl FireblocksClient {
 
 // This impl block contains the rest of "nice to have" endpoints
 impl FireblocksClient {
-    pub async fn vaults(&self) -> Result<Vec<VaultAccountResponse>> {
-        self.get("vault/accounts").await
+    pub async fn vaults(&self) -> Result<VaultAccountPaginatedResponse> {
+        self.get("vault/accounts_paged").await
     }
 
     pub async fn vault(&self, account_id: &str) -> Result<VaultAccountResponse> {
@@ -142,9 +142,9 @@ mod tests {
         let client = FireblocksClient::new(key, &api_key);
 
         let _res = client.vaults().await.unwrap();
-        let _res = client.vault("1").await.unwrap();
-        let _res = client.vault_addresses("1", "ETH_TEST").await.unwrap();
-        let _res = client.vault_wallet("1", "ETH_TEST").await.unwrap();
+        let _res = client.vault("0").await.unwrap();
+        let _res = client.vault_addresses("0", "ETH_TEST3").await.unwrap();
+        let _res = client.vault_wallet("0", "ETH_TEST3").await.unwrap();
         let _res = client
             // Creating a vault does not require approval?
             .new_vault(CreateVaultRequest {
