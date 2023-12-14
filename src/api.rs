@@ -25,8 +25,12 @@ pub struct FireblocksClient {
 
 // This impl block contains the necessary API calls for interacting with Ethereum
 impl FireblocksClient {
-    pub fn new(key: EncodingKey, api_key: &str) -> Self {
-        Self::new_with_url(key, api_key, FIREBLOCKS_API)
+    pub fn new(key: EncodingKey, api_key: &str, api_url_override: Option<&str>) -> Self {
+        let api_url = match api_url_override {
+            Some(url) => url,
+            None => FIREBLOCKS_API
+        };
+        Self::new_with_url(key, api_key, api_url)
     }
 
     pub fn new_with_url(key: EncodingKey, api_key: &str, url: &str) -> Self {
@@ -132,6 +136,13 @@ impl FireblocksClient {
 mod tests {
     use super::*;
 
+    // this section implements method useful in tests
+    impl FireblocksClient {
+        pub fn url(&self) -> &str {
+            &self.url
+        }
+    }
+
     #[tokio::test]
     async fn v1_api() {
         let fireblocks_key = std::env::var("FIREBLOCKS_API_SECRET_PATH").unwrap();
@@ -139,7 +150,9 @@ mod tests {
 
         let rsa_pem = std::fs::read(fireblocks_key).unwrap();
         let key = EncodingKey::from_rsa_pem(&rsa_pem[..]).unwrap();
-        let client = FireblocksClient::new(key, &api_key);
+        let client = FireblocksClient::new(key, &api_key, None);
+
+        assert_eq!(client.url(), FIREBLOCKS_API);
 
         let _res = client.vaults().await.unwrap();
         let _res = client.vault("0").await.unwrap();
@@ -156,4 +169,6 @@ mod tests {
             .await
             .unwrap();
     }
+
+    // test api url
 }

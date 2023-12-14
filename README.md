@@ -33,12 +33,11 @@ use std::convert::TryFrom;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let wallet_id = "1"; // Our wallet id
     let chain_id = 3; // Ropsten
     let cfg = Config::new(
         &std::env::var("FIREBLOCKS_API_SECRET_PATH").expect("fireblocks secret not set"),
         &std::env::var("FIREBLOCKS_API_KEY").expect("fireblocks api key not set"),
-        wallet_id,
+        &std::env::var("FIREBLOCKS_SOURCE_VAULT_ACCOUNT").expect("fireblocks source vault account not set"),
         chain_id,
     )?;
 
@@ -62,3 +61,10 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
  ```
+
+ ## Sandbox environment
+
+Fireblocks sandbox api is available at `https://sandbox-api.fireblocks.io` in contrast with test and production api available at `https://api.fireblocks.io`. By default `FireblocksSigner` connects to production url. You can override this behaviour (i.e. to connect to sandbox) by setting env var:
+```
+export FIREBLOCKS_API_URL_OVERRIDE="https://sandbox-api.fireblocks.io"
+```

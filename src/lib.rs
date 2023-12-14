@@ -151,7 +151,15 @@ impl AsRef<FireblocksClient> for FireblocksSigner {
 impl FireblocksSigner {
     /// Instantiates a FireblocksSigner with the provided config
     pub async fn new(cfg: Config) -> Self {
-        let fireblocks = FireblocksClient::new(cfg.key, &cfg.api_key);
+        let local;
+        let api_url_override = match std::env::var("FIREBLOCKS_API_URL_OVERRIDE") {
+            Ok(string) => {
+                local = string;
+                Some(local.as_str())
+            },
+            Err(_) => None
+        };
+        let fireblocks = FireblocksClient::new(cfg.key, &cfg.api_key, api_url_override);
         let asset_id = match cfg.chain_id {
             1 => "ETH",
             3 => "ETH_TEST",
