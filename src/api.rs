@@ -12,7 +12,7 @@ use jsonwebtoken::EncodingKey;
 use reqwest::{Client, RequestBuilder};
 use serde::{de::DeserializeOwned, Serialize};
 
-const FIREBLOCKS_API: &str = "https://sandbox-api.fireblocks.io";
+const FIREBLOCKS_API: &str = "https://api.fireblocks.io";
 const VERSION: &str = "v1";
 
 #[derive(Debug, Clone)]
