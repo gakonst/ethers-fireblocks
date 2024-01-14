@@ -97,19 +97,14 @@ pub struct TransactionArguments {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub destination: Option<DestinationTransferPeerPath>,
     pub amount: String,
-    pub extra_parameters: Option<ExtraParameters>,
+    pub external_tx_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gas_price: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gas_limit: Option<String>,
     pub note: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum ExtraParameters {
-    ContractCallData(String),
-    RawMessageData(RawMessageData),
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fee_level: Option<FeeLevel>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -146,7 +141,6 @@ pub enum TransactionOperation {
     TRANSFER,
     RAW,
     CONTRACT_CALL,
-
     MINT,
     BURN,
     SUPPLY_TO_COMPOUND,
@@ -165,6 +159,15 @@ pub enum PeerType {
     NETWORK_CONNECTION,
     FIAT_ACCOUNT,
     COMPOUND,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, Serialize, Deserialize)]
+#[allow(clippy::upper_case_acronyms)]
+pub enum FeeLevel {
+    LOW,
+    MEDIUM,
+    HIGH,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -247,4 +250,18 @@ pub struct RawMessageData {
 #[serde(rename_all = "camelCase")]
 pub struct UnsignedMessage {
     pub content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountDetails {
+    pub id: String,
+    pub total: String,
+    pub balance: String,
+    pub locked_amount: String,
+    pub available: String,
+    pub pending: String,
+    pub frozen: String,
+    pub staked: String,
+    pub block_height: String,
 }

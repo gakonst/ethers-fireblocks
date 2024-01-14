@@ -1,46 +1,9 @@
-//! # ethers-fireblocks
-//!
-//! Provides [ethers](https://docs.rs/ethers)-compatible Signer and Middleware
-//! implementations for the Fireblocks API.
-//!
-//! ```rust,no_run
-//! # async fn broadcasts_tx() -> Result<(), Box<dyn std::error::Error>> {
-//! use ethers_providers::{Middleware, Provider};
-//! use ethers_core::types::Address;
-//! use ethers_fireblocks::{FireblocksSigner, FireblocksMiddleware, Config};
-//! use std::convert::TryFrom;
-//!
-//! let cfg = Config::new(
-//!     "~/.fireblocks/fireblocks.key",
-//!     &std::env::var("FIREBLOCKS_API_KEY").expect("fireblocks api key not set"),
-//!     "1",
-//!     3,
-//! )?;
-//! // The signer can be used with Ethers' Wallet.
-//! let mut signer = FireblocksSigner::new(cfg).await;
-//!
-//! // You must add each address you will be calling to the Address map.
-//! // example below uses the Greeter contract deployed by the Fireblocks team on
-//! // Ropsten.
-//! let address: Address = "cbe74e21b070a979b9d6426b11e876d4cb618daf".parse()?;
-//! let address_id = std::env::var("EXTERNAL_WALLET_ID").expect("external wallet id not set");
-//! signer.add_account(address_id, address);
-//! let provider = Provider::try_from("http://localhost:8545")?;
-//! let provider = FireblocksMiddleware::new(provider, signer);
-//! # Ok(())
-//! # }
-//! ```
 mod jwtclient;
-mod types;
+pub mod types;
 use types::{TransactionArguments, TransactionDetails, TransactionStatus};
 
 mod api;
 use api::FireblocksClient;
-
-mod signer;
-
-mod middleware;
-pub use middleware::FireblocksMiddleware;
 
 use ethers_core::types::Address;
 use jsonwebtoken::EncodingKey;
@@ -103,7 +66,6 @@ pub struct FireblocksSigner {
     fireblocks: FireblocksClient,
     account_ids: HashMap<Address, String>,
     chain_id: u64,
-    asset_id: String,
     address: Address,
     account_id: String,
     timeout: u128,
@@ -177,7 +139,6 @@ impl FireblocksSigner {
             fireblocks,
             account_ids: HashMap::new(),
             chain_id: cfg.chain_id,
-            asset_id: asset_id.to_owned(),
             address: res[0].address[2..]
                 .parse()
                 .expect("could not parse as address"),
@@ -197,7 +158,21 @@ impl FireblocksSigner {
         self.account_ids.insert(address, account_id);
     }
 
-    async fn handle_action<F, R>(&self, args: TransactionArguments, func: F) -> Result<R>
+    pub fn chain_id(&self) -> u64 {
+        self.chain_id
+    }
+
+    pub fn address(&self) -> Address {
+        self.address
+    }
+
+    pub async fn get_available(&self, asset_id: &str) -> Result<String> {
+        let account_details = self.fireblocks.get_account_details(asset_id, &self.account_id).await?;
+
+        Ok(account_details.available)
+    }
+
+    pub async fn handle_action<F, R>(&self, args: TransactionArguments, func: F) -> Result<R>
     where
         F: FnOnce(TransactionDetails) -> Result<R>,
     {
@@ -212,7 +187,7 @@ impl FireblocksSigner {
             use TransactionStatus::*;
             // Loops in pending signature
             match details.status {
-                BROADCASTING | COMPLETED => return func(details),
+                COMPLETED => return func(details),
                 BLOCKED | CANCELLED | FAILED => {
                     return Err(FireblocksError::TxError(details.status, details.sub_status))
                 }

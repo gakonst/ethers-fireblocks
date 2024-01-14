@@ -3,7 +3,7 @@ use crate::{
     jwtclient::JwtSigner,
     types::{
         AssetResponse, CreateTransactionResponse, CreateVaultRequest, CreateVaultResponse,
-        DepositAddressResponse, TransactionArguments, TransactionDetails, VaultAccountResponse, VaultAccountPaginatedResponse,
+        DepositAddressResponse, TransactionArguments, TransactionDetails, VaultAccountResponse, VaultAccountPaginatedResponse, AccountDetails,
     },
     FireblocksError, Result,
 };
@@ -47,6 +47,10 @@ impl FireblocksClient {
         tx: TransactionArguments,
     ) -> Result<CreateTransactionResponse> {
         self.post("transactions", tx).await
+    }
+
+    pub async fn get_account_details(&self, asset_id: &str, account_id: &str) -> Result<AccountDetails> {
+        self.get(&format!("vault/accounts/{}/{}", account_id, asset_id)).await
     }
 
     pub async fn transaction(&self, txid: &str) -> Result<TransactionDetails> {
